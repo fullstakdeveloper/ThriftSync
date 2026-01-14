@@ -38,6 +38,7 @@ int main(int argc, char const* argv[]) {
     printf("message sent to server!\n");
 
     valread = read(client_fd, buffer, 1024 - 1); 
+
     printf("%s\n", buffer);
 
     close(client_fd);

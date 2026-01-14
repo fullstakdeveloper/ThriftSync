@@ -68,4 +68,6 @@ int main(int argc, char const* agrv[]) {
 
     return 0;
 
+    //add the abilty to have multiple connnections to the server
+
 }
