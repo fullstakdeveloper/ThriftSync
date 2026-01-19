@@ -4,7 +4,7 @@ A low-level, high-throughput networking engine built in C++ using the Berkeley S
 
 
 
-## 🎯 Project Overview
+##Project Overview
 The goal of Zenith is to move data from Client to Server as fast as possible while maintaining a tiny memory footprint. By bypassing high-level abstractions, this project provides granular control over the TCP byte stream, ensuring data integrity for any file type (Text, Images, Video).
 
 ### Key Technical Specs:
@@ -12,7 +12,7 @@ The goal of Zenith is to move data from Client to Server as fast as possible whi
 * **Memory Profile:** $O(1)$ Space Complexity (Fixed 1024-byte buffer).
 * **Architecture:** Sequential binary "shoveling" for stable memory usage.
 
-## 🏗 The Zenith Header
+##The Zenith Header
 To solve the "Message Framing" problem in TCP, every packet is preceded by a 12-byte metadata "label." This ensures the server knows exactly how many bytes to expect, preventing buffer overflows or desynchronization.
 
 | Offset | Field | Type | Description |
@@ -23,7 +23,7 @@ To solve the "Message Framing" problem in TCP, every packet is preceded by a 12-
 
 
 
-## 🛠 Engineering Highlights
+##Engineering Highlights
 
 ### 1. Constant Space Complexity ($O(1)$)
 Zenith avoids the common pitfall of reading entire files into RAM. Instead, it utilizes a **streaming loop**:
@@ -38,7 +38,7 @@ By utilizing `std::ios::binary`, the engine treats all data as raw bytes. This e
 
 
 
-## 🚀 Getting Started
+##Getting Started
 
 ### Prerequisites
 * GCC/G++ Compiler
