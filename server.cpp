@@ -4,7 +4,15 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <stdint.h>
 #define PORT 8080
+
+//uint32_t ensures that it is 4 bytes on every system
+struct ZenithHeader {
+    uint32_t version; // idk protocol version
+    uint32_t type; // 1 for text, 2 for image, 3 for video
+    uint32_t payload_size; // the size of the data being sent
+};
 
 int main(int argc, char const* agrv[]) {
 

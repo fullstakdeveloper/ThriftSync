@@ -3,13 +3,23 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <stdint.h>
 #define PORT 8080
+
+//uint32_t ensures that it is 4 bytes on every system
+struct ZenithHeader {
+    uint32_t version; // idk protocol version
+    uint32_t type; // 1 for text, 2 for image, 3 for video
+    uint32_t payload_size; // the size of the data being sent
+};
 
 int main(int argc, char const* argv[]) {
     int status, valread, client_fd;
     struct sockaddr_in serv_addr;
 
     char* text = "hello this is client";
+    //the buffer is updated allocate the ram used after getting data from server 
+    //or the other way around, it is also used in the server file
     char buffer[1024] = { 0 };
 
     client_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -43,6 +53,8 @@ int main(int argc, char const* argv[]) {
 
     close(client_fd);
     return 0;
+
+    //
 
 
 }
