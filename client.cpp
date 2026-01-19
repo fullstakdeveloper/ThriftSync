@@ -44,8 +44,26 @@ int main(int argc, char const* argv[]) {
         return -1;
     }
 
+   //assuming connection has been established until this point
+   //string literal
+    char* message = "Hello, this is the zenith protocol sending a message";
+    uint32_t messagelen = strlen(message);
+
+    ZenithHeader header;
+    header.version = 1;
+    header.type = 1;
+    header.type = 1;
+    header.payload_size = messagelen;
+
+    // send(client_fd, &header, sizeof(header), 0);
     send(client_fd, text, strlen(text), 0);
     printf("message sent to server!\n");
+
+    //added a sleep because in mac os the buffer is created the os when the client connection closes
+    printf("Sent! Waiting...\n");
+    sleep(2); 
+
+    printf("handshake done");
 
     valread = read(client_fd, buffer, 1024 - 1); 
 

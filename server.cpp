@@ -63,16 +63,18 @@ int main(int argc, char const* agrv[]) {
         printf("connection was successful");
     }
 
+    memset(buffer, 0, sizeof(buffer));
     int valread = read(new_socket, buffer, 1024 - 1);
+    
 
     if (valread < 0) {
-        perror("Read failed");
+        perror("read failed");
     } else {
-        printf("Received from client: %s\n", buffer);
+        buffer[valread] = '\0';
+        printf("received from client: %s\n", buffer);
     }
-
-    close(new_socket);
-    close(server_fd);
+    // close(new_socket);
+    // close(server_fd);
 
     return 0;
 
