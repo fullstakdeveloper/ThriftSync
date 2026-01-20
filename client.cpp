@@ -56,7 +56,8 @@ int main(int argc, char const* argv[]) {
     header.payload_size = messagelen;
 
     // send(client_fd, &header, sizeof(header), 0);
-    send(client_fd, text, strlen(text), 0);
+    send(client_fd, &header, sizeof(ZenithHeader), 0);
+    
     printf("message sent to server!\n");
 
     //added a sleep because in mac os the buffer is created the os when the client connection closes
