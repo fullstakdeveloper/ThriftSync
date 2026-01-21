@@ -93,7 +93,7 @@ END OF TRANSMISSION.)";
     printf("%s\n", buffer);
 
     printf("sending message ... ");
-    send(client_fd, &header, sizeof(ZenithHeader), 0);
+    send(client_fd, &header, strlen(text), 0);
 
     printf("Sent! Waiting...\n");
     sleep(2); 
