@@ -5,6 +5,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <fstream>
+#include <algorithm>
+
 #define PORT 8080
 
 //uint32_t ensures that it is 4 bytes on every system
@@ -76,6 +79,37 @@ int main(int argc, char const* agrv[]) {
         printf("Type: %u\n", receivedHeader.type);
         printf("Payload Size: %u\n", receivedHeader.payload_size);
     }
+
+    const char* ack = "OK";
+    send(new_socket, ack, strlen(ack), 0);
+
+    int curr_bytes_received = 0;
+
+    std::ofstream outFile("received_file.bin", std::ios::binary);
+
+    while (curr_bytes_received < receivedHeader.payload_size) {
+        
+        int bytes_to_read = std::min((uint32_t)1024, (uint32_t)(receivedHeader.payload_size - curr_bytes_received));
+        int valread = recv(new_socket, buffer, bytes_to_read, 0);
+
+        if (valread > 0) {
+            outFile.write(buffer, valread);
+            curr_bytes_received += valread;
+        } else if (valread == 0) {
+            break; 
+        } else {
+            perror("recv failed");
+            break;
+        }
+
+
+        printf("(%d, %d)\n", curr_bytes_received, receivedHeader.payload_size);
+
+
+        
+    }
+
+    send(new_socket, ack, strlen(ack), 0);
     
 
     // if (valread < 0) {
