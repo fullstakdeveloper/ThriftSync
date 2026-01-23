@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <fstream>
 #include <algorithm>
+#include <thread>
 
 #define PORT 8080
 
@@ -16,6 +17,61 @@ struct ZenithHeader {
     uint32_t type; // 1 for text, 2 for image, 3 for video
     uint32_t payload_size; // the size of the data being sent
 };
+
+void handle_client(int client_socket) {
+
+    //for constant memory usage
+    char buffer[1024] = {0};
+
+    //header structure
+    ZenithHeader receivedHeader;
+    
+    //getting the bytes from the cleints
+    int headerBytesRead = recv(client_socket, &receivedHeader, sizeof(ZenithHeader), 0);
+
+    //printing out the values from the client
+    if (headerBytesRead == sizeof(ZenithHeader)) {
+        printf("header received!\n");
+        printf("version: %u\n", receivedHeader.version);
+        printf("type: %u\n", receivedHeader.type);
+        printf("payload size: %u\n", receivedHeader.payload_size);
+    }
+
+    //confirmation that header read back to client
+    const char* ack = "header received";
+    send(client_socket, ack, strlen(ack), 0);
+
+    //variables for O(1) memory usage
+    int curr_bytes_received = 0;
+    std::ofstream outFile("received_file.bin", std::ios::binary);
+
+    //reading bytes in chunks and sending to the backend
+    while (curr_bytes_received < receivedHeader.payload_size) {
+        
+        //had to type cast due to min specifications
+        int bytes_to_read = std::min((uint32_t)1024, (uint32_t)(receivedHeader.payload_size - curr_bytes_received));
+        int valread = recv(client_socket, buffer, bytes_to_read, 0);
+
+        //logic for loop exist after all bytes obtained
+        if (valread > 0) {
+            outFile.write(buffer, valread);
+            curr_bytes_received += valread;
+        } else if (valread == 0) {
+            break; 
+        } else {
+            perror("recv failed");
+            break;
+        }
+
+        //tracking
+        printf("(%d, %d)\n", curr_bytes_received, receivedHeader.payload_size);
+    }
+
+    ack = "data received";
+    send(client_socket, ack, strlen(ack), 0);
+
+    close(client_socket);
+}
 
 int main(int argc, char const* agrv[]) {
 
@@ -60,56 +116,14 @@ int main(int argc, char const* agrv[]) {
     //when the client finally tries to reach you, it basically calls accept which returns a socket that we use to talk to that other server
     int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 
-    if (new_socket < 0) {
-        perror("accept failed");
-        exit(EXIT_FAILURE);
+    if (new_socket >= 0) {
         printf("connection was successful");
+        std::thread t(handle_client, new_socket);
+        t.detach();
     }
 
     // memset(buffer, 0, sizeof(buffer));
     // int valread = read(new_socket, buffer, 1024 - 1);
-
-    ZenithHeader receivedHeader;
-
-    int headerBytesRead = recv(new_socket, &receivedHeader, sizeof(ZenithHeader), 0);
-
-    if (headerBytesRead == sizeof(ZenithHeader)) {
-        printf("Header Received!\n");
-        printf("Version: %u\n", receivedHeader.version);
-        printf("Type: %u\n", receivedHeader.type);
-        printf("Payload Size: %u\n", receivedHeader.payload_size);
-    }
-
-    const char* ack = "OK";
-    send(new_socket, ack, strlen(ack), 0);
-
-    int curr_bytes_received = 0;
-
-    std::ofstream outFile("received_file.bin", std::ios::binary);
-
-    while (curr_bytes_received < receivedHeader.payload_size) {
-        
-        int bytes_to_read = std::min((uint32_t)1024, (uint32_t)(receivedHeader.payload_size - curr_bytes_received));
-        int valread = recv(new_socket, buffer, bytes_to_read, 0);
-
-        if (valread > 0) {
-            outFile.write(buffer, valread);
-            curr_bytes_received += valread;
-        } else if (valread == 0) {
-            break; 
-        } else {
-            perror("recv failed");
-            break;
-        }
-
-
-        printf("(%d, %d)\n", curr_bytes_received, receivedHeader.payload_size);
-
-
-        
-    }
-
-    send(new_socket, ack, strlen(ack), 0);
     
 
     // if (valread < 0) {
