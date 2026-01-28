@@ -8,7 +8,6 @@
 #include <fstream>
 #include <algorithm>
 #include <thread>
-
 #define PORT 8080
 
 //uint32_t ensures that it is 4 bytes on every system
@@ -37,8 +36,16 @@ void handle_client(int client_socket) {
         printf("payload size: %u\n", receivedHeader.payload_size);
     }
 
+    if (receivedHeader.type == 1) {
+        printf("text");
+    } else if (receivedHeader.type == 2) {
+        printf("image");
+    } else {
+        printf("video");
+    }
+
     //confirmation that header read back to client
-    const char* ack = "header received";
+    const char* ack = "header-received\n";
     send(client_socket, ack, strlen(ack), 0);
 
     //variables for O(1) memory usage
@@ -118,8 +125,9 @@ int main(int argc, char const* agrv[]) {
 
     if (new_socket >= 0) {
         printf("connection was successful");
-        std::thread t(handle_client, new_socket);
-        t.detach();
+        // std::thread t(handle_client, new_socket);
+        handle_client(new_socket);
+        // t.detach();
     }
 
     // memset(buffer, 0, sizeof(buffer));
@@ -134,7 +142,7 @@ int main(int argc, char const* agrv[]) {
     // }
 
     // close(new_socket);
-    // close(server_fd);
+    close(server_fd);
 
     return 0;
 
