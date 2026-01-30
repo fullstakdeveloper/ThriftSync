@@ -145,6 +145,7 @@ int main(int argc, char const* agrv[]) {
 
     // close(new_socket);
     close(server_fd);
+    close(server_fd);
 
     return 0;
 

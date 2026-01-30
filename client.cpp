@@ -7,6 +7,9 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
+#include <fstream>
+#include <vector>
+#include <iostream>
 #define PORT 8080
 
 //1. get the image and video issues
@@ -39,6 +42,7 @@ int main(int argc, char const* argv[]) {
         printf("client socket failed\n");
         return -1;
     }
+    
     
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
