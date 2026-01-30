@@ -10,11 +10,13 @@
 #include <thread>
 #define PORT 8080
 
+//this is the server file
 //uint32_t ensures that it is 4 bytes on every system
 struct ZenithHeader {
     uint32_t version; // idk protocol version
     uint32_t type; // 1 for text, 2 for image, 3 for video
     uint32_t payload_size; // the size of the data being sent
+    std::string filename;
 };
 
 void handle_client(int client_socket) {
@@ -23,8 +25,7 @@ void handle_client(int client_socket) {
     char buffer[1024] = {0};
 
     //header structure
-    ZenithHeader receivedHeader;
-    
+    ZenithHeader receivedHeader; 
     //getting the bytes from the cleints
     int headerBytesRead = recv(client_socket, &receivedHeader, sizeof(ZenithHeader), 0);
 
@@ -36,14 +37,6 @@ void handle_client(int client_socket) {
         printf("payload size: %u\n", receivedHeader.payload_size);
     }
 
-    // if (receivedHeader.type == 1) {
-    //     printf("text");
-    // } else if (receivedHeader.type == 2) {
-    //     printf("image");
-    // } else {
-    //     printf("video");
-    // }
-
     //confirmation that header read back to client
     printf("header confimation sent\n");
     const char* ack = "header-received";
@@ -51,7 +44,7 @@ void handle_client(int client_socket) {
 
     //variables for O(1) memory usage
     int curr_bytes_received = 0;
-    std::ofstream outFile("received_file.mov", std::ios::binary);
+    std::ofstream outFile("received_" + receivedHeader.filename, std::ios::binary);
 
     //reading bytes in chunks and sending to the backend
     while (curr_bytes_received < receivedHeader.payload_size) {

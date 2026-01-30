@@ -12,7 +12,9 @@
 #include <iostream>
 #define PORT 8080
 
+//this is the client file
 //the merge is fixed and ready to go
+
 
 //1. get the image and video issues
 //2. get the multi threading done with only 4 instances allowed
@@ -29,6 +31,7 @@ struct ZenithHeader {
     uint32_t version; // idk protocol version
     uint32_t type; // 1 for text, 2 for image, 3 for video
     uint32_t payload_size; // the size of the data being sent
+    std::string filename = "";
 };
 
 int main(int argc, char const* argv[]) {
@@ -39,7 +42,6 @@ int main(int argc, char const* argv[]) {
     //or the other way around, it is also used in the server file
 
     client_fd = socket(AF_INET, SOCK_STREAM, 0);
-
     if (client_fd < 0) {
         printf("client socket failed\n");
         return -1;
@@ -55,7 +57,7 @@ int main(int argc, char const* argv[]) {
     }
 
     status = connect(client_fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
-
+    
     if (status < 0) {
         printf("connection failed\n");
         return -1;
@@ -67,13 +69,15 @@ int main(int argc, char const* argv[]) {
 
     ZenithHeader header;
 
-    std::ifstream inFile("testvideo.mov", std::ios::binary);
+    printf( "Enter the file name that you want to send");
+    std::cin >> header.filename;
+
+    std::ifstream inFile(header.filename, std::ios::binary);
     if (!inFile){perror("Could not open file");}
 
     inFile.seekg(0, std::ios::end);
-
+    
     header.version = 1;
-    header.type = 1;
     header.type = 1;
     header.payload_size = (uint32_t)inFile.tellg();
 
