@@ -8,7 +8,6 @@
 #include <fstream>
 #include <algorithm>
 #include <thread>
-
 #define PORT 8080
 
 //uint32_t ensures that it is 4 bytes on every system
@@ -37,17 +36,26 @@ void handle_client(int client_socket) {
         printf("payload size: %u\n", receivedHeader.payload_size);
     }
 
+    // if (receivedHeader.type == 1) {
+    //     printf("text");
+    // } else if (receivedHeader.type == 2) {
+    //     printf("image");
+    // } else {
+    //     printf("video");
+    // }
+
     //confirmation that header read back to client
-    const char* ack = "header received";
+    printf("header confimation sent\n");
+    const char* ack = "header-received";
     send(client_socket, ack, strlen(ack), 0);
 
     //variables for O(1) memory usage
     int curr_bytes_received = 0;
-    std::ofstream outFile("received_file.bin", std::ios::binary);
+    std::ofstream outFile("received_file.mov", std::ios::binary);
 
     //reading bytes in chunks and sending to the backend
     while (curr_bytes_received < receivedHeader.payload_size) {
-        
+        printf("received");
         //had to type cast due to min specifications
         int bytes_to_read = std::min((uint32_t)1024, (uint32_t)(receivedHeader.payload_size - curr_bytes_received));
         int valread = recv(client_socket, buffer, bytes_to_read, 0);
@@ -56,6 +64,7 @@ void handle_client(int client_socket) {
         if (valread > 0) {
             outFile.write(buffer, valread);
             curr_bytes_received += valread;
+            send(client_socket, "ok", 2, 0);
         } else if (valread == 0) {
             break; 
         } else {
@@ -69,7 +78,6 @@ void handle_client(int client_socket) {
 
     ack = "data received";
     send(client_socket, ack, strlen(ack), 0);
-
     close(client_socket);
 }
 
@@ -113,13 +121,15 @@ int main(int argc, char const* agrv[]) {
 
     int addrlen = sizeof(address);
 
+    while(true) {
     //when the client finally tries to reach you, it basically calls accept which returns a socket that we use to talk to that other server
-    int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
+        int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 
-    if (new_socket >= 0) {
-        printf("connection was successful");
-        std::thread t(handle_client, new_socket);
-        t.detach();
+        if (new_socket >= 0) {
+            printf("connection was successful\n");
+            std::thread t(handle_client, new_socket);
+            t.detach();
+        }
     }
 
     // memset(buffer, 0, sizeof(buffer));
@@ -134,7 +144,7 @@ int main(int argc, char const* agrv[]) {
     // }
 
     // close(new_socket);
-    // close(server_fd);
+    close(server_fd);
 
     return 0;
 

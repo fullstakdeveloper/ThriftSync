@@ -4,7 +4,20 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <fstream>
+#include <vector>
+#include <iostream>
 #define PORT 8080
+
+//1. get the image and video issues
+//2. get the multi threading done with only 4 instances allowed
+//3. then get encription and data integrity done
+
+//returning the vector array(I need to keep O(1) memory on the client side)
+// std::vector<char> imageToBytes(std::string filename) {
+//     std::ifstream(filename, std::ios::binary)
+
+// }
 
 //uint32_t ensures that it is 4 bytes on every system
 struct ZenithHeader {
@@ -17,35 +30,8 @@ int main(int argc, char const* argv[]) {
     int status, valread, client_fd;
     struct sockaddr_in serv_addr;
 
-    char* text = R"(ZENITH PROTOCOL STRESS TEST - DATA INTEGRITY VERIFICATION
-The goal of this transmission is to validate the chunked streaming logic of the Zenith Server. If the server is correctly implemented with an O(1) space complexity model, it will process this text in 1KB increments without loading the entire block into RAM. This specific text block is designed to be large enough to exceed the initial buffer size, forcing the recv() loop to execute multiple times.
-
-In systems programming, particularly for a University of Waterloo engineering context, the ability to manage memory manually is a critical skill. By using a fixed-size buffer, we ensure that the server remains resilient regardless of payload size. Whether the client sends a small text string or a multi-gigabyte binary disk image, the memory pressure on the server remains identical. This is the hallmark of a scalable backend architecture.
-
-LOREM IPSUM GENERATED SEGMENT FOR VOLUME:
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis ut sodales nisi. Vivamus eu nisl a enim hendrerit silicertum. Cras vel nisl a dui elementum aliqam. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Donec non enim in turpis pulvinar facilisis. Ut non convallis neque. Morbi id imperdiet risus. Nullam efficitur, tellus ac varius finibus, mi purus interdum nisl, non elementum libero enim a nisi. Quisque vel varius urna. Curabitur vel tristique nisi. In hac habitasse platea dictumst. Proin tincidunt, justo nec elementum tristique, ex risus varius dui, at suscipit lectus metus a nibh. Donec feugiat convallis urna, eget scelerisque magna.
-
-TECHNICAL SPECIFICATION RECAP:
-Your header should have identified this payload correctly. 
-- Version: 1
-- Type: 1 (Text)
-- Payload Size: [Calculated at Runtime]
-
-The server must utilize the std::min logic to ensure that the final chunk read does not overreach into unallocated memory or wait indefinitely for bytes that do not exist. In a real-world scenario, failing to handle the 'remaining bytes' calculation correctly leads to socket timeouts or 'zombie' processes that hang while waiting for data.
-
-CONTINUING DATA STREAM:
-The process of 'shoveling' data—reading from the kernel socket buffer and immediately piping that data to the disk via std::ofstream—is a pattern used in high-performance proxies and file servers. It minimizes the time data spends in user-space memory. As you verify the output file, ensure that the last character received is the period at the very end of this document. Any extra characters (garbage data) indicate that the buffer was not cleared or the write size was incorrect. Any missing characters indicate a logic error in the while-loop condition.
-
-Waterloo recruiters often look for this level of detail. When you describe this project in an interview, you can confidently state: 'I tested the protocol using multi-kilobyte payloads to verify that my chunked-receive loop handled buffer boundaries and partial reads correctly.' This proves you didn't just write the code; you engineered the solution.
-
-FINAL BUFFER PADDING:
-To ensure we definitely cross the 4KB mark, we continue the stream here. The networking stack handles the segmentation, but your application-layer protocol provides the structure. This text represents a successful test of the Zenith Protocol v1.0. If you can read this, your server successfully parsed the 12-byte header, opened a binary file handle, managed the loop counter, and closed the stream gracefully. This is the foundation for the multi-threaded upgrades and encryption layers you will add next.
-
-END OF TRANSMISSION.)";
-
     //the buffer is updated allocate the ram used after getting data from server 
     //or the other way around, it is also used in the server file
-    char buffer[1024] = { 0 };
 
     client_fd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -53,7 +39,7 @@ END OF TRANSMISSION.)";
         printf("client socket failed\n");
         return -1;
     }
-
+    
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
 
@@ -69,42 +55,80 @@ END OF TRANSMISSION.)";
         return -1;
     }
 
-   //assuming connection has been established until this point
-   //string literal
-    char* message = "Hello, this is the zenith protocol sending a message";
-    uint32_t messagelen = strlen(message);
+    //until this point a connection to the other socket has been established
+    //have seperate functions for sending text, image, and video
+    //change the header for the zenith to accomodate for the file size
 
     ZenithHeader header;
+
+    std::ifstream inFile("testvideo.mov", std::ios::binary);
+    if (!inFile){perror("Could not open file");}
+
+    inFile.seekg(0, std::ios::end);
+
     header.version = 1;
     header.type = 1;
     header.type = 1;
-    header.payload_size = strlen(text);
+    header.payload_size = (uint32_t)inFile.tellg();
 
+    
     // send(client_fd, &header, sizeof(header), 0);
     send(client_fd, &header, sizeof(ZenithHeader), 0);
     printf("header sent to server!\n");
+    printf("sent ... waiting ...\n");
 
-    //added a sleep because in mac os the buffer is created the os when the client connection closes
+    sleep(1);
+
+    char ack_buffer[1024];
+    memset(ack_buffer, 0, 1024);
+
+    while (valread <= 0) {
+        valread = read(client_fd, ack_buffer, 1024 - 1);
+    } 
+
+    if (valread > 0) {
+        if (strstr(ack_buffer, "header-received") == 0) {
+            printf("handshake done ... starting shovel...\n");
+        } else {
+            printf("handshake failed %s\n", ack_buffer);
+        }
+    }
+    
+    //sends the cursor to the end of the of the file
+    inFile.clear();         
+    inFile.seekg(0, std::ios::beg);
+
+    //shoveling process and sending
+    char conf_buffer[16] = {0};
+    char send_buffer[1024];
+
+    while (inFile.read(send_buffer, sizeof(send_buffer)) || inFile.gcount() > 0) {
+        int bytes_read = inFile.gcount();
+        bool sent = false;
+        while (!sent) {
+            send(client_fd, send_buffer, inFile.gcount(), 0);
+            recv(client_fd, conf_buffer, sizeof(conf_buffer), 0);
+        
+
+            if (strstr(conf_buffer, "ok")) {
+                sent = true; 
+                printf("{properly sent}\n");
+            } else {
+                printf("{retrying shovel}\n");
+            }
+        }   
+        
+    }
+
     printf("Sent! Waiting...\n");
-    sleep(2); 
-    printf("handshake done \n");
 
-    valread = read(client_fd, buffer, 1024 - 1); 
-    printf("%s\n", buffer);
+    valread = read(client_fd, ack_buffer, 1024 - 1); 
+    printf("%s\n", ack_buffer);
 
-    printf("sending message ... ");
-    send(client_fd, &header, strlen(text), 0);
-
-    printf("Sent! Waiting...\n");
-    sleep(2); 
-
-    valread = read(client_fd, buffer, 1024 - 1); 
-    printf("%s\n", buffer);
+    printf("client closed");
     
     close(client_fd);
     return 0;
-
-    //
 
 
 }
