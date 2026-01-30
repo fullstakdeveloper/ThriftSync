@@ -12,6 +12,8 @@
 #include <iostream>
 #define PORT 8080
 
+//the merge is fixed and ready to go
+
 //1. get the image and video issues
 //2. get the multi threading done with only 4 instances allowed
 //3. then get encription and data integrity done

@@ -36,8 +36,6 @@ Zenith avoids the common pitfall of reading entire files into RAM. Instead, it u
 ### 2. Binary-First Design
 By utilizing std::ios::binary, the engine treats all data as raw bytes. This ensures that JPEGs, MP4s, and PDFs are transferred bit-perfectly without the operating system corrupting data through unintended character encoding translations.
 
-
-
 ## Getting Started
 
 ### Prerequisites
