@@ -8,9 +8,13 @@
 #include <fstream>
 #include <algorithm>
 #include <thread>
-#define PORT 8080
+#include <condition_variable>
+#include <functional>
+#include <iostream>
+#include <mutex>
+#include <queue>
 
-using namespace std;
+#define PORT 8080
 
 //this is the server file
 //this is the threadpool class
@@ -18,9 +22,9 @@ class ThreadPool {
 public:
   //initializing the constructor for the class/there needs to a cue that allocates the tasks to the threads
   //there will be a total of 4 threads total
-  ThreadPool(size_t num_threads = thread::hardware_concurrency()) {
+  ThreadPool(size_t num_threads = std::thread::hardware_concurrency()) {
     for (size_t i = 0; i < num_threads; i++) {
-      threads.emplace_back([this]) {
+      threads_.emplace_back([this]) {
         while(true) {          
           int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
           handle_client(new_socket);
