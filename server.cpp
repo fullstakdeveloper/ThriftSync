@@ -8,12 +8,32 @@
 #include <fstream>
 #include <algorithm>
 #include <thread>
+
 #define PORT 8080
 
 //this is the server file
+//this is the threadpool class
+class ThreadPool {
+public:
+  //initializing the constructor for the class/there needs to a cue that allocates the tasks to the threads
+  //there will be a total of 4 threads total
+  ThreadPool(size_t num_threads = thread::hardware_concurrency()) {
+    for (size_t i = 0; i < num_threads; i++) {
+      threads.emplace_back([this]) {
+        while(true) {          
+          int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
+          handle_client(new_socket);
+
+
+        }
+      }
+    }
+  }
+
+}
 //uint32_t ensures that it is 4 bytes on every system
 struct ZenithHeader {
-    uint32_t version; // idk protocol version
+    uint32_t version; //this is the just
     uint32_t type; // 1 for text, 2 for image, 3 for video
     uint32_t payload_size; // the size of the data being sent
     std::string filename;
@@ -25,7 +45,8 @@ void handle_client(int client_socket) {
     char buffer[1024] = {0};
 
     //header structure
-    ZenithHeader receivedHeader; 
+    ZenithHeader receivedHeader;
+
     //getting the bytes from the cleints
     int headerBytesRead = recv(client_socket, &receivedHeader, sizeof(ZenithHeader), 0);
 
@@ -49,6 +70,7 @@ void handle_client(int client_socket) {
     //reading bytes in chunks and sending to the backend
     while (curr_bytes_received < receivedHeader.payload_size) {
         printf("received");
+
         //had to type cast due to min specifications
         int bytes_to_read = std::min((uint32_t)1024, (uint32_t)(receivedHeader.payload_size - curr_bytes_received));
         int valread = recv(client_socket, buffer, bytes_to_read, 0);
@@ -95,7 +117,6 @@ int main(int argc, char const* agrv[]) {
     address.sin_port = htons(PORT);
     address.sin_addr.s_addr = INADDR_ANY;
 
-    //bind
     //since the bind function bind was written for all address types
     //we have to type cast the sockaddr_in to sockaddr pointer
     //bind attaches the socket to a specific port and an IP address
@@ -115,26 +136,18 @@ int main(int argc, char const* agrv[]) {
     int addrlen = sizeof(address);
 
     while(true) {
+
     //when the client finally tries to reach you, it basically calls accept which returns a socket that we use to talk to that other server
         int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 
         if (new_socket >= 0) {
             printf("connection was successful\n");
+
+            //this creates a thread for everysingle time a client tries to connect to the server
             std::thread t(handle_client, new_socket);
             t.detach();
         }
     }
-
-    // memset(buffer, 0, sizeof(buffer));
-    // int valread = read(new_socket, buffer, 1024 - 1);
-    
-
-    // if (valread < 0) {
-    //     perror("read failed");
-    // } else {
-    //     buffer[valread] = '\0';
-    //     printf("received from client: %s\n", buffer);
-    // }
 
     // close(new_socket);
     close(server_fd);

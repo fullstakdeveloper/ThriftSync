@@ -1,4 +1,4 @@
-#include <arpa/inet.h>
+#in clude <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -14,9 +14,6 @@
 
 //this is the client file
 //the merge is fixed and ready to go
-
-
-//1. get the image and video issues
 //2. get the multi threading done with only 4 instances allowed
 //3. then get encription and data integrity done
 
