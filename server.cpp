@@ -8,8 +8,9 @@
 #include <fstream>
 #include <algorithm>
 #include <thread>
-
 #define PORT 8080
+
+using namespace std;
 
 //this is the server file
 //this is the threadpool class
