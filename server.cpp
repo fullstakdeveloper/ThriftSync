@@ -31,11 +31,18 @@ public:
   ThreadPool(size_t num_threads = std::thread::hardware_concurrency()) {
     for (size_t i = 0; i < num_threads; i++) {
       threads_.emplace_back([this] {
-        while(true) {          
-          int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
-          handle_client(new_socket);
+        while(true) {
+          {
+          int socket;
+          std::unique_lock<std::mutex> lock(this->que_mutex);
+          this->cv_.wait(lock, [this] {return this->stop || !this->tasks_.empty();});
+          if (this->stop_ && this->tasks_.empty()) return;
+          socket = this->task_.front();
+          this->task_.pop();
+          }
 
-
+          handle_client(socket);
+           
         }
       });
     }
