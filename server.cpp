@@ -13,29 +13,35 @@
 #include <iostream>
 #include <mutex>
 #include <queue>
-
 #define PORT 8080
 
 //this is the server file
 //this is the threadpool class
 class ThreadPool {
+private:
+  vector<threads> threads_;
+  queue<function<void()>> tasks_;
+  mutex que_mutex_;
+  condition_variable cv_;
+  bool stop_ = false;
+
 public:
   //initializing the constructor for the class/there needs to a cue that allocates the tasks to the threads
   //there will be a total of 4 threads total
   ThreadPool(size_t num_threads = std::thread::hardware_concurrency()) {
     for (size_t i = 0; i < num_threads; i++) {
-      threads_.emplace_back([this]) {
+      threads_.emplace_back([this] {
         while(true) {          
           int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
           handle_client(new_socket);
 
 
         }
-      }
+      });
     }
   }
 
-}
+};
 //uint32_t ensures that it is 4 bytes on every system
 struct ZenithHeader {
     uint32_t version; //this is the just
