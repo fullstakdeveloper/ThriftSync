@@ -19,7 +19,7 @@
 
 //returning the vector array(I need to keep O(1) memory on the client side)
 // std::vector<char> imageToBytes(std::string filename) {
-//     std::ifstream(filename, std::ios::binary)
+//     std::ifstream(filename, std:ios::binary)
 
 // }
 
