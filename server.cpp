@@ -48,6 +48,25 @@ public:
     }
   }
 
+
+  void enqueue(int socket) {
+    {
+    std::unique_lock<std::mutex> lock(mutex);
+    task_.push(socket);
+    }
+    cv_.notify_one();
+  }
+
+  ~ThreadPool() {
+    {
+      std::unigue_lock(std::mutex) lock(que_mutex_);
+      stop_ = true;
+    }
+    cv_.noftify_all();
+    for (std::thread &worker : threads_) work.join();
+  }
+
+
 };
 //uint32_t ensures that it is 4 bytes on every system
 struct ZenithHeader {
