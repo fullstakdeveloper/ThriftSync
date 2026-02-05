@@ -33,6 +33,7 @@ struct ZenithHeader {
     std::string filename = "";
 };
 
+//main function
 int main(int argc, char const* argv[]) {
     int status, valread, client_fd;
     struct sockaddr_in serv_addr;
@@ -110,7 +111,7 @@ int main(int argc, char const* argv[]) {
     //shoveling process and sending
     char conf_buffer[16] = {0};
     char send_buffer[1024];
-
+    //main loop for sending data in O(1);
     while (inFile.read(send_buffer, sizeof(send_buffer)) || inFile.gcount() > 0) {
         int bytes_read = inFile.gcount();
         bool sent = false;
