@@ -139,6 +139,8 @@ void handle_client(int client_socket) {
 int main(int argc, char const* agrv[]) {
 
     char buffer[1024] = {0};
+    
+    ThreadPool pool(4); 
 
     //AF_INET --> tells the computer how to find the other person(communication endpoint)
     //SOCK_STREAM --> tells the computer how the data should behave(continuous flow), SOCK_DGRAM is the alternate
@@ -181,9 +183,8 @@ int main(int argc, char const* agrv[]) {
         int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 
         if (new_socket >= 0) {
-            printf("a request was recevied\n");
+            printf("request was recevied\n");
             pool.enqueue(new_socket);
-            cv_.notify_one();
         }
     }
 

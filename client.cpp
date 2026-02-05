@@ -12,6 +12,8 @@
 #include <iostream>
 #define PORT 8080
 
+//what the hell is going on in this file, why are there so many bugs in this file
+
 //this is the client file
 //the merge is fixed and ready to go
 //2. get the multi threading done with only 4 instances allowed
