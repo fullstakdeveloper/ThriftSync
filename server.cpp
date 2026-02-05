@@ -181,20 +181,12 @@ int main(int argc, char const* agrv[]) {
         int new_socket = accept(server_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 
         if (new_socket >= 0) {
-            printf("connection was successful\n");
-
-            //this creates a thread for everysingle time a client tries to connect to the server
-            std::thread t(handle_client, new_socket);
-            t.detach();
+            printf("a request was recevied\n");
+            pool.enqueue(new_socket);
+            cv_.notify_one();
         }
     }
 
-    // close(new_socket);
-    close(server_fd);
-    close(server_fd);
-
     return 0;
-
-    //add the abilty to have multiple connnections to the server
 
 }

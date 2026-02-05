@@ -38,7 +38,7 @@ int main(int argc, char const* argv[]) {
     //the buffer is updated allocate the ram used after getting data from server 
     //or the other way around, it is also used in the server file
 
-    client_fd = socket(ack_NET, SOCK_STREAM, 0);
+    client_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (client_fd < 0) {
         printf("client socket failed\n");
         return -1;
