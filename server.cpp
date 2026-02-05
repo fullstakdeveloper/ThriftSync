@@ -15,14 +15,16 @@
 #include <queue>
 #define PORT 8080
 
+void handle_client(int client_socket);
+
 //this is the server file
 //this is the threadpool class
 class ThreadPool {
 private:
-  vector<threads> threads_;
-  queue<function<void()>> tasks_;
-  mutex que_mutex_;
-  condition_variable cv_;
+  std::vector<std::thread> threads_;
+  std::queue<int> tasks_;
+  std::mutex que_mutex_;
+  std::condition_variable cv_;
   bool stop_ = false;
 
 public:
@@ -32,16 +34,17 @@ public:
     for (size_t i = 0; i < num_threads; i++) {
       threads_.emplace_back([this] {
         while(true) {
+        int client_fd;
           {
           int socket;
-          std::unique_lock<std::mutex> lock(this->que_mutex);
-          this->cv_.wait(lock, [this] {return this->stop || !this->tasks_.empty();});
+          std::unique_lock<std::mutex> lock(this->que_mutex_);
+          this->cv_.wait(lock, [this] {return this->stop_ || !this->tasks_.empty();});
           if (this->stop_ && this->tasks_.empty()) return;
-          socket = this->task_.front();
-          this->task_.pop();
+          socket = this->tasks_.front();
+          this->tasks_.pop();
           }
 
-          handle_client(socket);
+          handle_client(client_fd);
            
         }
       });
@@ -50,20 +53,20 @@ public:
 
 
   void enqueue(int socket) {
-    {
-    std::unique_lock<std::mutex> lock(mutex);
-    task_.push(socket);
+     {
+    std::unique_lock<std::mutex> lock(std::mutex);
+    tasks_.push(socket);
     }
     cv_.notify_one();
   }
 
   ~ThreadPool() {
     {
-      std::unigue_lock(std::mutex) lock(que_mutex_);
+      std::unique_lock<std::mutex> lock(que_mutex_);
       stop_ = true;
     }
-    cv_.noftify_all();
-    for (std::thread &worker : threads_) work.join();
+    cv_.notify_all();
+    for (std::thread &worker : threads_) worker.join();
   }
 
 
