@@ -54,7 +54,7 @@ public:
 
   void enqueue(int socket) {
      {
-    std::unique_lock<std::mutex> lock(que_mutex_);
+    std::unique_lock<std::mutex> lock(std::mutex);
     tasks_.push(socket);
     }
     cv_.notify_one();
