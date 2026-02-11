@@ -40,7 +40,7 @@ public:
           std::unique_lock<std::mutex> lock(this->que_mutex_);
           this->cv_.wait(lock, [this] {return this->stop_ || !this->tasks_.empty();});
           if (this->stop_ && this->tasks_.empty()) return;
-          socket = this->tasks_.front();
+          client_fd = this->tasks_.front();
           this->tasks_.pop();
           }
 
@@ -54,7 +54,7 @@ public:
 
   void enqueue(int socket) {
      {
-    std::unique_lock<std::mutex> lock(std::mutex);
+    std::unique_lock<std::mutex> lock(que_mutex_);
     tasks_.push(socket);
     }
     cv_.notify_one();
@@ -80,7 +80,7 @@ struct ZenithHeader {
 };
 
 void handle_client(int client_socket) {
-
+    printf("a thread started");
     //for constant memory usage
     char buffer[1024] = {0};
 
@@ -138,7 +138,7 @@ void handle_client(int client_socket) {
 
 int main(int argc, char const* agrv[]) {
 
-    char buffer[1024] = {0};
+    char buffer[2048] = {0};
     
     ThreadPool pool(4); 
 
@@ -186,8 +186,8 @@ int main(int argc, char const* agrv[]) {
             printf("request was recevied\n");
             pool.enqueue(new_socket);
         }
-    }
 
     return 0;
 
+    }
 }
