@@ -63,6 +63,8 @@ int main(int argc, char const* argv[]) {
         return -1;
     }
 
+
+    
     //until this point a connection to the other socket has been established
     //have seperate functions for sending text, image, and video
     //change the header for the zenith to accomodate for the file size
