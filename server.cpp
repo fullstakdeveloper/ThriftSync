@@ -77,7 +77,7 @@ struct ZenithHeader {
     uint32_t version; //this is the just
     uint32_t type; // 1 for text, 2 for image, 3 for video
     uint32_t payload_size; // the size of the data being sent
-    std::string filename;
+    char filename[256];
 };
 
 void handle_client(int client_socket) {

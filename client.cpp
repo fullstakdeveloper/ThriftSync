@@ -12,41 +12,30 @@
 #include <iostream>
 #define PORT 8080
 
-//what the hell is going on in this file, why are there so many bugs in this file
+//This is the Client File:
+//1. It takes local data and send it to the server using chunked streaming
+//3. It send data by encrypting the raw bytes first and creates the key
 
-//this is the client file
-//the merge is fixed and ready to go
-//2. get the multi threading done with only 4 instances allowed
-//3. then get encription and data integrity done
-
-//returning the vector array(I need to keep O(1) memory on the client side)
-// std::vector<char> imageToBytes(std::string filename) {
-//     std::ifstream(filename, std:ios::binary)
-
-// }
-
-//uint32_t ensures that it is 4 bytes on every system
 struct ZenithHeader {
-    uint32_t version; // idk protocol version
-    uint32_t type; // 1 for text, 2 for image, 3 for video
-    uint32_t payload_size; // the size of the data being sent
-    std::string filename = "";
+    uint32_t version; 
+    uint32_t type; 
+    uint32_t payload_size; 
+    char filename[256];
 };
 
 //main function
 int main(int argc, char const* argv[]) {
+
+
     int status, valread, client_fd;
     struct sockaddr_in serv_addr;
 
-    //the buffer is updated allocate the ram used after getting data from server 
-    //or the other way around, it is also used in the server file
-
     client_fd = socket(AF_INET, SOCK_STREAM, 0);
+
     if (client_fd < 0) {
         printf("client socket failed\n");
         return -1;
     }
-    
     
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
@@ -63,19 +52,16 @@ int main(int argc, char const* argv[]) {
         return -1;
     }
 
-
-    
-    //until this point a connection to the other socket has been established
-    //have seperate functions for sending text, image, and video
-    //change the header for the zenith to accomodate for the file size
-
     ZenithHeader header;
 
     printf( "Enter the file name that you want to send");
     std::cin >> header.filename;
 
     std::ifstream inFile(header.filename, std::ios::binary);
-    if (!inFile){perror("Could not open file");}
+
+    if (!inFile){
+        perror("Could not open file");
+    }
 
     inFile.seekg(0, std::ios::end);
     
@@ -106,22 +92,21 @@ int main(int argc, char const* argv[]) {
         }
     }
     
-    //sends the cursor to the end of the of the file
     inFile.clear();         
     inFile.seekg(0, std::ios::beg);
 
-    //shoveling process and sending
     char conf_buffer[16] = {0};
     char send_buffer[1024];
-    //main loop for sending data in O(1);
+
     while (inFile.read(send_buffer, sizeof(send_buffer)) || inFile.gcount() > 0) {
         int bytes_read = inFile.gcount();
         bool sent = false;
+
         while (!sent) {
             send(client_fd, send_buffer, inFile.gcount(), 0);
+
             recv(client_fd, conf_buffer, sizeof(conf_buffer), 0);
         
-
             if (strstr(conf_buffer, "ok")) {
                 sent = true; 
                 printf("{properly sent}\n");
@@ -129,7 +114,6 @@ int main(int argc, char const* argv[]) {
                 printf("{retrying shovel}\n");
             }
         }   
-        
     }
 
     printf("Sent! Waiting...\n");
