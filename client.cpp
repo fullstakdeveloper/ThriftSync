@@ -25,7 +25,13 @@ struct ZenithHeader {
 
 //main function
 int main(int argc, char const* argv[]) {
+    if (argc != 3) {
+        printf("usage: zenithdrop <ip> <filepath>\n");
+        return -1;
+    }
 
+    const char* target_ip = argv[1];
+    const char* filepath  = argv[2];
 
     int status, valread, client_fd;
     struct sockaddr_in serv_addr;
@@ -41,7 +47,7 @@ int main(int argc, char const* argv[]) {
     serv_addr.sin_port = htons(PORT);
 
     //connecting to myself -> loop back address
-    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, target_ip, &serv_addr.sin_addr) <= 0) {
         printf("invalid address\n");
         return -1; 
     }
@@ -56,13 +62,14 @@ int main(int argc, char const* argv[]) {
     ZenithHeader header;
 
     //this is better for memory because the file size that is send doesn't get massive
-    const char* input_header_name = "header_name";
-    strncpy(header.filename, input_header_name, sizeof(header.filename) - 1);
+    strncpy(header.filename, filepath, sizeof(header.filename) - 1);
     std::ifstream inFile(header.filename, std::ios::binary);
     
 
     if (!inFile){
         perror("Could not open file");
+        close(client_fd);
+        return -1;
     }
 
     inFile.seekg(0, std::ios::end);
