@@ -57,8 +57,9 @@ int main(int argc, char const* argv[]) {
 
     //this is better for memory because the file size that is send doesn't get massive
     const char* input_header_name = "header_name";
-    std::ifstream inFile(header.filename, std::ios::binary);
     strncpy(header.filename, input_header_name, sizeof(header.filename) - 1);
+    std::ifstream inFile(header.filename, std::ios::binary);
+    
 
     if (!inFile){
         perror("Could not open file");
@@ -81,12 +82,14 @@ int main(int argc, char const* argv[]) {
     char ack_buffer[1024];
     memset(ack_buffer, 0, 1024);
 
+    valread = 0;
+
     while (valread <= 0) {
         valread = read(client_fd, ack_buffer, 1024 - 1);
     } 
 
     if (valread > 0) {
-        if (strstr(ack_buffer, "header-received") == 0) {
+        if (strstr(ack_buffer, "header-received") != 0) {
             printf("handshake done ... starting shovel...\n");
         } else {
             printf("handshake failed %s\n", ack_buffer);
@@ -118,7 +121,7 @@ int main(int argc, char const* argv[]) {
                 printf("{retrying shovel}\n");
             }
         }
-           
+
     }
 
     printf("Sent! Waiting...\n");
