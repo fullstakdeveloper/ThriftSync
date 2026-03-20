@@ -40,6 +40,7 @@ int main(int argc, char const* argv[]) {
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
 
+    //connecting to myself -> loop back address
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
         printf("invalid address\n");
         return -1; 
@@ -54,10 +55,10 @@ int main(int argc, char const* argv[]) {
 
     ZenithHeader header;
 
-    printf( "Enter the file name that you want to send");
-    std::cin >> header.filename;
-
+    //this is better for memory because the file size that is send doesn't get massive
+    const char* input_header_name = "header_name";
     std::ifstream inFile(header.filename, std::ios::binary);
+    strncpy(header.filename, input_header_name, sizeof(header.filename) - 1);
 
     if (!inFile){
         perror("Could not open file");
@@ -95,7 +96,10 @@ int main(int argc, char const* argv[]) {
     inFile.clear();         
     inFile.seekg(0, std::ios::beg);
 
+    //buffer for confirmation message
     char conf_buffer[16] = {0};
+
+    //buffer for sending
     char send_buffer[1024];
 
     while (inFile.read(send_buffer, sizeof(send_buffer)) || inFile.gcount() > 0) {
@@ -113,7 +117,8 @@ int main(int argc, char const* argv[]) {
             } else {
                 printf("{retrying shovel}\n");
             }
-        }   
+        }
+           
     }
 
     printf("Sent! Waiting...\n");
