@@ -16,7 +16,8 @@
 #include <sodium.h>
 #define PORT 8080
 
-
+//to compile
+//g++ -std=c++17 -pthread -o server server.cpp $(pkg-config --cflags --libs libsodium)
 
 //update this portion of the code
 void handle_client(int client_socket);
