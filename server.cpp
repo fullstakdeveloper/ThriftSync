@@ -13,7 +13,10 @@
 #include <iostream>
 #include <mutex>
 #include <queue>
+#include <sodium.h>
 #define PORT 8080
+
+
 
 //update this portion of the code
 void handle_client(int client_socket);
@@ -82,8 +85,6 @@ struct ZenithHeader {
 
 void handle_client(int client_socket) {
     printf("a thread started");
-    //for constant memory usage
-    char buffer[1024] = {0};
 
     //header structure
     ZenithHeader receivedHeader;
@@ -104,22 +105,38 @@ void handle_client(int client_socket) {
     const char* ack = "header-received";
     send(client_socket, ack, strlen(ack), 0);
 
+    unsigned char encrypt_header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
+    unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
+    crypto_secretstream_xchacha20poly1305_state state;
+
+    recv(client_socket, encrypt_header, sizeof(encrypt_header), 0);
+    recv(client_socket, key, sizeof(key), 0);
+    crypto_secretstream_xchacha20poly1305_init_pull(&state, encrypt_header, key);
+
     //variables for O(1) memory usage
     int curr_bytes_received = 0;
     std::ofstream outFile(std::string("received_") + receivedHeader.filename, std::ios::binary);
+
+
+
+    unsigned char cipher_buffer[1024 + crypto_secretstream_xchacha20poly1305_ABYTES];
+    unsigned char plain_buffer[1024];
+    unsigned long long plain_len;
+    unsigned char tag;
 
     //reading bytes in chunks and sending to the backend
     while (curr_bytes_received < receivedHeader.payload_size) {
         printf("received");
 
         //had to type cast due to min specifications
-        int bytes_to_read = std::min((uint32_t)1024, (uint32_t)(receivedHeader.payload_size - curr_bytes_received));
-        int valread = recv(client_socket, buffer, bytes_to_read, 0);
+        int valread = recv(client_socket, cipher_buffer, sizeof(cipher_buffer), 0);
 
         //logic for loop exist after all bytes obtained
         if (valread > 0) {
-            outFile.write(buffer, valread);
-            curr_bytes_received += valread;
+            crypto_secretstream_xchacha20poly1305_pull(&state, plain_buffer, &plain_len, &tag, cipher_buffer, valread, NULL, 0);
+            outFile.write((char*)plain_buffer, plain_len);
+
+            curr_bytes_received += plain_len;
             send(client_socket, "ok", 2, 0);
         } else if (valread == 0) {
             break; 
@@ -139,7 +156,11 @@ void handle_client(int client_socket) {
 
 int main(int argc, char const* agrv[]) {
 
-    char buffer[2048] = {0};
+  //for encryption
+  if (sodium_init() < 0) {
+      printf("libsodium init failed\n");
+      return -1;
+  }
     
     ThreadPool pool(4); 
 
