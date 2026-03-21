@@ -124,23 +124,29 @@ int main(int argc, char const* argv[]) {
     unsigned char encrypt_header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
     unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
     crypto_secretstream_xchacha20poly1305_keygen(key);
-    crypto_secretstream_xchacha20poly1305_push_init(&state, encrypt_header, key);
+    crypto_secretstream_xchacha20poly1305_init_push(&state, encrypt_header, key);
     send(client_fd, encrypt_header, sizeof(encrypt_header), 0);
 
     
 
     //buffer for confirmation message
     char conf_buffer[16] = {0};
-
-    //buffer for sending
     char send_buffer[1024];
+    
+    //buffer for sending
+    unsigned char cipher_buffer[1024 + crypto_secretstream_xchacha20poly1305_ABYTES];
+    unsigned long long cipher_len;
 
     while (inFile.read(send_buffer, sizeof(send_buffer)) || inFile.gcount() > 0) {
         int bytes_read = inFile.gcount();
         bool sent = false;
 
         while (!sent) {
-            send(client_fd, send_buffer, inFile.gcount(), 0);
+            crypto_secretstream_xchacha20poly1305_push(&state,cipher_buffer, &cipher_len, (unsigned char*)send_buffer, inFile.gcount(), NULL, 0,
+            crypto_secretstream_xchacha20poly1305_TAG_MESSAGE
+            );
+
+            send(client_fd, cipher_buffer, cipher_len, 0);
 
             recv(client_fd, conf_buffer, sizeof(conf_buffer), 0);
         
