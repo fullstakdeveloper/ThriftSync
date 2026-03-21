@@ -98,9 +98,6 @@ int main(int argc, char const* argv[]) {
     printf("header sent to server!\n");
     printf("sent ... waiting ...\n");
 
-    //this is a little sus -> I want to get it replaced
-    sleep(1);
-
     char ack_buffer[1024];
     memset(ack_buffer, 0, 1024);
 
@@ -109,7 +106,7 @@ int main(int argc, char const* argv[]) {
     //reads for server confirmation
     while (valread <= 0) {
         valread = read(client_fd, ack_buffer, 1024 - 1);
-    } 
+    }
 
     if (valread > 0) {
         if (strstr(ack_buffer, "header-received") != 0) {
@@ -122,16 +119,34 @@ int main(int argc, char const* argv[]) {
     inFile.clear();         
     inFile.seekg(0, std::ios::beg);
 
+    //receiving server public key
+    unsigned char server_pk[crypto_kx_PUBLICKEYBYTES];
+    recv(client_fd, server_pk, sizeof(server_pk), 0);
+
+    //generate the client keypair
+    unsigned char client_pk[crypto_kx_PUBLICKEYBYTES];
+    unsigned char client_sk[crypto_kx_SECRETKEYBYTES];
+    crypto_kx_keypair(client_pk, client_sk);
+
+    //send the client public key to server
+    send(client_fd, client_pk, sizeof(client_pk), 0);
+
+    //creating the shared secrets
+    unsigned char rx[crypto_kx_SESSIONKEYBYTES];
+    unsigned char tx[crypto_kx_SESSIONKEYBYTES];
+
+    if (crypto_kx_client_session_keys(rx, tx, client_pk, client_sk, server_pk) != 0) {
+        printf("key exchange failed\n");
+        close(client_fd);
+        return -1;
+    }
+
     //encryption header send and verification
     crypto_secretstream_xchacha20poly1305_state state;
     unsigned char encrypt_header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
-    unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
-    crypto_secretstream_xchacha20poly1305_keygen(key);
-    crypto_secretstream_xchacha20poly1305_init_push(&state, encrypt_header, key);
-    send(client_fd, encrypt_header, sizeof(encrypt_header), 0);
 
-    //this is only for testing for now;
-    send(client_fd, key, sizeof(key), 0);
+    crypto_secretstream_xchacha20poly1305_init_push(&state, encrypt_header, tx);
+    send(client_fd, encrypt_header, sizeof(encrypt_header), 0);
     
     //buffer for confirmation message
     char conf_buffer[16] = {0};
@@ -172,6 +187,4 @@ int main(int argc, char const* argv[]) {
     
     close(client_fd);
     return 0;
-
-
 }
