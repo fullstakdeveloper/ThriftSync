@@ -13,6 +13,8 @@
 #include <sodium.h>
 #define PORT 8080
 
+
+
 //This is the Client File:
 //1. It takes local data and send it to the server using chunked streaming
 //3. It send data by encrypting the raw bytes first and creates the key
@@ -127,18 +129,19 @@ int main(int argc, char const* argv[]) {
     crypto_secretstream_xchacha20poly1305_init_push(&state, encrypt_header, key);
     send(client_fd, encrypt_header, sizeof(encrypt_header), 0);
 
+    //this is only for testing for now;
+    send(client_fd, key, sizeof(key), 0);
     
 
     //buffer for confirmation message
     char conf_buffer[16] = {0};
     char send_buffer[1024];
-    
+
     //buffer for sending
     unsigned char cipher_buffer[1024 + crypto_secretstream_xchacha20poly1305_ABYTES];
     unsigned long long cipher_len;
 
     while (inFile.read(send_buffer, sizeof(send_buffer)) || inFile.gcount() > 0) {
-        int bytes_read = inFile.gcount();
         bool sent = false;
 
         while (!sent) {
