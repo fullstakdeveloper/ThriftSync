@@ -133,7 +133,6 @@ int main(int argc, char const* argv[]) {
     //this is only for testing for now;
     send(client_fd, key, sizeof(key), 0);
     
-
     //buffer for confirmation message
     char conf_buffer[16] = {0};
     char send_buffer[1024];

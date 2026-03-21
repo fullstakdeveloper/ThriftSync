@@ -73,9 +73,8 @@ public:
     cv_.notify_all();
     for (std::thread &worker : threads_) worker.join();
   }
-
-
 };
+
 //uint32_t ensures that it is 4 bytes on every system
 struct ZenithHeader {
     uint32_t version; //this is the just
@@ -106,19 +105,32 @@ void handle_client(int client_socket) {
     const char* ack = "header-received";
     send(client_socket, ack, strlen(ack), 0);
 
+    //create the private/public key logic here
+    unsigned char server_pk[crypto_kx_PUBLICKEYBYTES];
+    unsigned char server_sk[crypto_kx_SECRETKEYBYTES];
+    crypto_kx_keypair(server_pk, server_sk);
+
+    //sending public key to client
+    send(client_socket, server_pk, sizeof(server_pk), 0);
+
+    //receive client public key
+    unsigned char client_pk[crypto_kx_PUBLICKEYBYTES];
+    recv(client_socket, client_pk, sizeof(client_pk), 0);
+
+    //derive shared session secrets
+    unsigned char rx[crypto_kx_SESSIONKEYBYTES];
+    unsigned char tx[crypto_kx_SESSIONKEYBYTES];
+    crypto_kx_server_session_keys(rx, tx, server_pk, server_sk, client_pk);
+
     unsigned char encrypt_header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
-    unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
     crypto_secretstream_xchacha20poly1305_state state;
 
     recv(client_socket, encrypt_header, sizeof(encrypt_header), 0);
-    recv(client_socket, key, sizeof(key), 0);
-    crypto_secretstream_xchacha20poly1305_init_pull(&state, encrypt_header, key);
+    crypto_secretstream_xchacha20poly1305_init_pull(&state, encrypt_header, rx);
 
     //variables for O(1) memory usage
     int curr_bytes_received = 0;
     std::ofstream outFile(std::string("received_") + receivedHeader.filename, std::ios::binary);
-
-
 
     unsigned char cipher_buffer[1024 + crypto_secretstream_xchacha20poly1305_ABYTES];
     unsigned char plain_buffer[1024];
