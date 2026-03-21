@@ -10,6 +10,7 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
+#include <sodium.h>
 #define PORT 8080
 
 //This is the Client File:
@@ -25,17 +26,28 @@ struct ZenithHeader {
 
 //main function
 int main(int argc, char const* argv[]) {
+
+    //for encryption
+    if (sodium_init() < 0) {
+        printf("libsodium init failed\n");
+        return -1;
+    }
+
+    //makes sure athe arguments needed to run and received
     if (argc != 3) {
         printf("usage: zenithdrop <ip> <filepath>\n");
         return -1;
     }
 
+    //defining usable variables from command input
     const char* target_ip = argv[1];
     const char* filepath  = argv[2];
-
+    
+    
     int status, valread, client_fd;
     struct sockaddr_in serv_addr;
 
+    //creating client socket
     client_fd = socket(AF_INET, SOCK_STREAM, 0);
 
     if (client_fd < 0) {
@@ -46,7 +58,7 @@ int main(int argc, char const* argv[]) {
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
 
-    //connecting to myself -> loop back address
+    //establishing connection to the server
     if (inet_pton(AF_INET, target_ip, &serv_addr.sin_addr) <= 0) {
         printf("invalid address\n");
         return -1; 
@@ -59,12 +71,11 @@ int main(int argc, char const* argv[]) {
         return -1;
     }
 
+    //create the file transfre header for meta data information
     ZenithHeader header;
 
-    //this is better for memory because the file size that is send doesn't get massive
     strncpy(header.filename, filepath, sizeof(header.filename) - 1);
     std::ifstream inFile(header.filename, std::ios::binary);
-    
 
     if (!inFile){
         perror("Could not open file");
@@ -79,11 +90,12 @@ int main(int argc, char const* argv[]) {
     header.payload_size = (uint32_t)inFile.tellg();
 
     
-    // send(client_fd, &header, sizeof(header), 0);
+    //file meta data confirmation
     send(client_fd, &header, sizeof(ZenithHeader), 0);
     printf("header sent to server!\n");
     printf("sent ... waiting ...\n");
 
+    //this is a little sus -> I want to get it replaced
     sleep(1);
 
     char ack_buffer[1024];
@@ -91,6 +103,7 @@ int main(int argc, char const* argv[]) {
 
     valread = 0;
 
+    //reads for server confirmation
     while (valread <= 0) {
         valread = read(client_fd, ack_buffer, 1024 - 1);
     } 
@@ -102,9 +115,19 @@ int main(int argc, char const* argv[]) {
             printf("handshake failed %s\n", ack_buffer);
         }
     }
-    
+
     inFile.clear();         
     inFile.seekg(0, std::ios::beg);
+
+    //encryption header send and verification
+    crypto_secretstream_xchacha20poly1305_state state;
+    unsigned char encrypt_header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
+    unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES];
+    crypto_secretstream_xchacha20poly1305_keygen(key);
+    crypto_secretstream_xchacha20poly1305_push_init(&state, encrypt_header, key);
+    send(client_fd, encrypt_header, sizeof(encrypt_header), 0);
+
+    
 
     //buffer for confirmation message
     char conf_buffer[16] = {0};

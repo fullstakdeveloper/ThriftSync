@@ -55,7 +55,7 @@ public:
 
   void enqueue(int socket) {
      {
-    std::unique_lock<std::mutex> lock(std::mutex);
+    std::unique_lock<std::mutex> lock(que_mutex_);
     tasks_.push(socket);
     }
     cv_.notify_one();
@@ -106,7 +106,7 @@ void handle_client(int client_socket) {
 
     //variables for O(1) memory usage
     int curr_bytes_received = 0;
-    std::ofstream outFile("received_" + receivedHeader.filename, std::ios::binary);
+    std::ofstream outFile(std::string("received_") + receivedHeader.filename, std::ios::binary);
 
     //reading bytes in chunks and sending to the backend
     while (curr_bytes_received < receivedHeader.payload_size) {
@@ -188,7 +188,9 @@ int main(int argc, char const* agrv[]) {
             pool.enqueue(new_socket);
         }
 
-    return 0;
+    
 
     }
+
+    return 0;
 }
