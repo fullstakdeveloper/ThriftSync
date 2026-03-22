@@ -4,9 +4,10 @@
 #include "client.h"
 #include "server.h"
 #include "protocol.h"
+#include "share.h"
 
 //to compile
-//g++ -std=c++17 -pthread -o zenithdrop main.cpp client.cpp server.cpp $(pkg-config --cflags --libs libsodium)
+//g++ -std=c++17 -pthread -o zenithdrop main.cpp client.cpp server.cpp share.cpp $(pkg-config --cflags --libs libsodium) -lqrencode
 
 int main(int argc, char const* argv[]) {
 
@@ -24,6 +25,7 @@ int main(int argc, char const* argv[]) {
 
     std::string type = argv[1];
 
+    //each type event handler
     if (type == "send") {
         if (argc != 4) {
             printf("usage: zenithdrop send <ip> <filepath>\n");
@@ -35,10 +37,16 @@ int main(int argc, char const* argv[]) {
         return run_server();
 
     } else if (type == "share") {
-        // QR code + HTTP server — coming soon
+        if (argc != 3) {
+            printf("usage: zenithdrop share <filepath>\n");
+            return -1;
+        }
+        return run_share(argv[2]);
 
     } else {
         printf("unknown command: %s\n", argv[1]);
         return -1;
     }
+
+    return 0;
 }
