@@ -13,8 +13,9 @@
 #include <iostream>
 #include <mutex>
 #include <queue>
+#include "protocol.h"
 #include <sodium.h>
-#define PORT 8080
+
 
 //to compile
 //g++ -std=c++17 -pthread -o server server.cpp $(pkg-config --cflags --libs libsodium)
@@ -75,13 +76,6 @@ public:
   }
 };
 
-//uint32_t ensures that it is 4 bytes on every system
-struct ZenithHeader {
-    uint32_t version; //this is the just
-    uint32_t type; // 1 for text, 2 for image, 3 for video
-    uint32_t payload_size; // the size of the data being sent
-    char filename[256];
-};
 
 void handle_client(int client_socket) {
     printf("a thread started");
@@ -120,7 +114,12 @@ void handle_client(int client_socket) {
     //derive shared session secrets
     unsigned char rx[crypto_kx_SESSIONKEYBYTES];
     unsigned char tx[crypto_kx_SESSIONKEYBYTES];
-    crypto_kx_server_session_keys(rx, tx, server_pk, server_sk, client_pk);
+    
+    if (crypto_kx_server_session_keys(rx, tx, server_pk, server_sk, client_pk) != 0) {
+      printf("key exchange failed\n");
+      close(client_socket);
+      return;
+    }
 
     unsigned char encrypt_header[crypto_secretstream_xchacha20poly1305_HEADERBYTES];
     crypto_secretstream_xchacha20poly1305_state state;
@@ -167,25 +166,19 @@ void handle_client(int client_socket) {
     close(client_socket);
 }
 
-int main(int argc, char const* agrv[]) {
+int run_server() {
 
-  //for encryption
-  if (sodium_init() < 0) {
-      printf("libsodium init failed\n");
-      return -1;
+  ThreadPool pool(4); 
+
+  //AF_INET --> tells the computer how to find the other person(communication endpoint)
+  //SOCK_STREAM --> tells the computer how the data should behave(continuous flow), SOCK_DGRAM is the alternate
+  // 0 --> tells program to choose the most logical protocol(TCP)
+  int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+  if (server_fd < 0) {
+      perror("socket failed");
+      exit(EXIT_FAILURE);
   }
-    
-    ThreadPool pool(4); 
-
-    //AF_INET --> tells the computer how to find the other person(communication endpoint)
-    //SOCK_STREAM --> tells the computer how the data should behave(continuous flow), SOCK_DGRAM is the alternate
-    // 0 --> tells program to choose the most logical protocol(TCP)
-    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (server_fd < 0) {
-        perror("socket failed");
-        exit(EXIT_FAILURE);
-    }
 
     struct sockaddr_in address;
 

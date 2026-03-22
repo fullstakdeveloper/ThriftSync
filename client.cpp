@@ -11,7 +11,9 @@
 #include <vector>
 #include <iostream>
 #include <sodium.h>
-#define PORT 8080
+#include "protocol.h"
+#include "client.h"
+
 
 //to compile
 //g++ -std=c++17 -o client client.cpp $(pkg-config --cflags --libs libsodium)
@@ -20,33 +22,10 @@
 //1. It takes local data and send it to the server using chunked streaming
 //3. It send data by encrypting the raw bytes first and creates the key
 
-struct ZenithHeader {
-    uint32_t version; 
-    uint32_t type; 
-    uint32_t payload_size; 
-    char filename[256];
-};
-
 //main function
-int main(int argc, char const* argv[]) {
+int run_client(const char* target_ip, const char* filepath) {
+//parametrized the entire function
 
-    //for encryption
-    if (sodium_init() < 0) {
-        printf("libsodium init failed\n");
-        return -1;
-    }
-
-    //makes sure athe arguments needed to run and received
-    if (argc != 3) {
-        printf("usage: zenithdrop <ip> <filepath>\n");
-        return -1;
-    }
-
-    //defining usable variables from command input
-    const char* target_ip = argv[1];
-    const char* filepath  = argv[2];
-    
-    
     int status, valread, client_fd;
     struct sockaddr_in serv_addr;
 
