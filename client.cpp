@@ -18,7 +18,7 @@
 //to compile
 //g++ -std=c++17 -o client client.cpp $(pkg-config --cflags --libs libsodium)
 
-//This is the Client File:
+//this is the Client File:
 //1. It takes local data and send it to the server using chunked streaming
 //3. It send data by encrypting the raw bytes first and creates the key
 
