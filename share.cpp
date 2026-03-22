@@ -17,7 +17,7 @@ std::string get_local_ip() {
     for (struct ifaddrs* ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr == NULL) {continue;}
         if (ifa->ifa_addr->sa_family != AF_INET) {continue;}
-        if (strcmp(ifa->ifa_name, "lo") == 0) {continue;}
+        if (strcmp(ifa->ifa_name, "lo0") == 0) {continue;} 
 
         struct sockaddr_in* addr = (struct sockaddr_in*)ifa->ifa_addr;
         inet_ntop(AF_INET, &addr->sin_addr, ip, sizeof(ip));
